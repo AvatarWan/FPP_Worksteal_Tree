@@ -37,7 +37,10 @@ int getSize()
 //*******************************************************************
 bool REPLAY = false;
 bool TRACE = false;
+char *FILE_LOC="temp.trace";
 
+// step data member has not been used as it is a flat and single finish so a task if stared execution then will definetly complete
+// and whole task could get stolen
 class ContinuationHdr
 {public:
 	ContinuationHdr(const ContinuationHdr &t)
@@ -84,7 +87,7 @@ public:
 	bool atFrontier = false;//could any of its children have been stolen, initially false
 };
 
-
+//Not used class as there is no continuation that could be stolen
 class Cont : public  ContinuationHdr
 {
 
@@ -155,7 +158,8 @@ class PipeDeQueue
 	}
 
 
-	//***********Push to Bottom********************
+// 	***********Push to Bottom********************
+// [PROBLEM]# Here we need to work as push and popTop shouldn't require a lock but without it not working
 	void push(Task &task)
 	{
 
@@ -164,7 +168,9 @@ class PipeDeQueue
 		long t=top;
 		if((b-t) >= (tasks.size()-1) )	//TaskList is Full so grow it
 		{
-			printf("Regrowing Task List for %d\n",0);
+			#if DEBUG 
+				printf("Regrowing Task List for %d\n",0);
+			#endif
 			tasks.grow(b,t);
 		}
 		tasks.put(b,task);
@@ -194,8 +200,6 @@ class PipeDeQueue
 
 };
 
-//
-
 
 class WorkingPhaseInfo
 {
@@ -214,7 +218,9 @@ public:
 	{
 		if(curr_theif< thieves.size())
 			return thieves[curr_theif++];
-		printf("ERROR: no more theif\n");
+		#if DEBUG
+			printf("ERROR: no more theif\n");
+		#endif
 		return -1;
 	}
 	bool isMoreTheif()
@@ -407,7 +413,6 @@ public:
 			for(int j=0;j<size;j++)
 				if(i!=j)
 				{
-					printf("%d -- %d\n",i,j);
 					//Send stolen task from i to j
 					PipeDeQueue *temp = new PipeDeQueue();
 					replay_wsh[i].sendPipe[j] = temp;
@@ -485,34 +490,6 @@ void init_executionTask()
 
 }
 
-void init_replay()
-{
-	init_executionTask();
-	executingTasks[size-1]->atFrontier = true;
-	replay_wsh = readReplayWorkerStateHdrs("temp.trace");
-	ReplayWorkingStateHdr::setPipeLines(replay_wsh);
-		printf("****************Result after retracing************* \n");
-		for(int i=0;i<size;i++)
-		{
-			printf("WORKER %d list of workphase\n",i);
-			replay_wsh[i].print();
-		}
-
-	replay_wsh[size-1].current_wpi = replay_wsh[size-1].getNextWPI();
-
-}
-
-void init_tracing()
-{
-	init_executionTask();
-
-	wsh = new WorkingStateHdr[size];
-	HelpFirstInfo phase(executingTasks[size-1]);
-	phase.victim = -1; //initiallize initial worker 1st workingphase and set its victim to -1 as it is not stolen from anyone
-	wsh[size-1].wpi.push_back(phase);
-
-}
-
 int getTempMyFuck(int victim,int level)
 {
 	if(level>=replay_wsh[victim].current_wpi.nTasksStolen.size())
@@ -530,12 +507,13 @@ void markStolen(int victim,Task &t,HelpFirstInfo &current_wpi)
 	if(current_wpi.isMoreTheif())
 		thief = current_wpi.getNextTheif();
 	else{
-		printf("ERROR : no more theif,for worker:%d ,count_wpi:%d ,last value of curr_theif:%d \n",victim,replay_wsh[victim].count_wpi-1,current_wpi.curr_theif);
-		printf("ERROR : level:%d nChild:%d nTasksStolen:%d\n",t.level,current_wpi.childCount[t.level],getTempMyFuck(victim,t.level) );
+		printf("[ERROR] : no more theif,for worker:%d ,count_wpi:%d ,last value of curr_theif:%d \n",victim,replay_wsh[victim].count_wpi-1,current_wpi.curr_theif);
+		printf("[ERROR] : level:%d nChild:%d nTasksStolen:%d\n",t.level,current_wpi.childCount[t.level],getTempMyFuck(victim,t.level) );
 	}
 	(replay_wsh[victim].sendPipe[thief])->push(t);
-
-	printf("%d can take from %d\n",thief,victim);
+	#if DEBUG
+		printf("[DEBUG] : %d can take from %d\n",thief,victim);
+	#endif
 	//the one it is stealing will not be pushed into the dequeue of the victim
 }
 
@@ -636,34 +614,34 @@ class DeQueue
 		int vict_phase_index = wsh[victim].wpi.size()-1;
 		r= (oldV==top);
 		if(r)
+		{
 			top=newV;
 
-		if(r)
-		{
-			if(c.step!=0)
-				printf("I think some problem here %d\n",c.step);
+			//Unused and unnessesary code
+			// if(c.step!=0)
+			// 	printf("I think some problem here %d\n",c.step);
+
+
 //			printf("steal from %d to %d at level %d and old value %d\n",victim,myrank,c.level,wsh[victim].wpi.back().nTasksStolen[c.level]);
-			if(!wsh[victim].wpi[vict_phase_index].validate()){
-				printf("MOTHER FUCKER here it is\n");
-				printf("*******%d %d %d %d %d\n",c.level,vict_phase_index,wsh[victim].wpi[vict_phase_index].nTasksStolen[c.level],myrank,victim);
-			}
+			// if(!wsh[victim].wpi[vict_phase_index].validate()){
+			// 	printf("Victim phase info is incorrect\n");
+			// 	printf("*******%d %d %d %d %d\n",c.level,vict_phase_index,wsh[victim].wpi[vict_phase_index].nTasksStolen[c.level],myrank,victim);
+			// }
 			
 			int tempttt=wsh[victim].wpi[vict_phase_index].nTasksStolen[c.level];
 
-
 			wsh[victim].addTheifToPhase(vict_phase_index,c.level,myrank);
-			// wsh[victim].wpi[vict_phase_index].nTasksStolenSet(c.level,  wsh[victim].wpi[vict_phase_index].nTasksStolen[c.level]+1 );
-			// wsh[victim].wpi[vict_phase_index].thieves.push_back(myrank);
 
-			if(!wsh[victim].wpi[vict_phase_index].validate()){
-				printf("MOTHER FUCKER here it is\n");
-				printf("*******%d %d %d %d %d %d\n",c.level,vict_phase_index,tempttt,wsh[victim].wpi[vict_phase_index].nTasksStolen[c.level],myrank,victim);
-			}
+			#if DEBUG
+				if(!wsh[victim].wpi[vict_phase_index].validate()){
+					printf("Victim phase info is incorrect\n");
+					printf("*******%d %d %d %d %d %d\n",c.level,vict_phase_index,tempttt,wsh[victim].wpi[vict_phase_index].nTasksStolen[c.level],myrank,victim);
+				}
+			#endif
 
 			HelpFirstInfo phase(&c);	//on new phase c.level become 0
 			phase.victim = victim;
 			phase.nTasksStolen.push_back(c.level); //c.level here is 0 always as a new phase will start and base level be 0
-			// wsh[myrank].wpi.push_back(phase);
 			wsh[myrank].addNewPhase(phase);
 		}
 		pthread_mutex_unlock(&tq_lock);
@@ -685,7 +663,7 @@ class DeQueue
 			if(!compareAndSwapTop(t,t+1))
 				return NULL;
 		}
-		else
+		else //in case of Trace if steal is successfull then trace it too
 			if( !compareAndSwapTopAndTrace(t,t+1,*task,victim,myrank) )
 				return NULL;
 
@@ -748,6 +726,7 @@ Task *grab_task_from_runtime()
 	//No more task so try to steal or change the workingphase
 	if(func==NULL)
 	{
+		//In case of Normal or Traced Execution
 		if(!REPLAY)
 		{
 			int victim;
@@ -757,23 +736,27 @@ Task *grab_task_from_runtime()
 			func = workerShelves[victim].steal(victim,*p);
 			if(func!=NULL)
 				printf("steal from %d to %d\n",victim,*p);
-		}
+		} //In case of Replay rather then stealing use the task from pipelines of the predetermined victim
 		else
 		{
+			//Check if there is more Working Phase for the Worker if there is no more available task in deque(Working Shelf) and
+			//no more task for steal so finish the execution and suspend this Worker 
 			if(replay_wsh[*p].isMoreWPI())
 			{
 				replay_wsh[*p].current_wpi = replay_wsh[*p].getNextWPI();
 				int victim = replay_wsh[*p].current_wpi.victim;
-				// printf("current_wpi for %d\n",*p);
-				// replay_wsh[*p].current_wpi.print();
-				printf("current phase index : %d, waiting %d for %d\n",replay_wsh[*p].count_wpi-1,*p,victim);
+				#if DEBUG
+					printf("DEBUG : %d, waiting %d for %d\n",replay_wsh[*p].count_wpi-1,*p,victim);
+				#endif
 				do{
-					if((replay_wsh[*p].recPipe[victim])==NULL)
-						printf("mother fucker %d and %d\n",*p,victim);
 					func = (replay_wsh[*p].recPipe[victim])->popTop();
 				}while(func==NULL);
-				printf("current phase index : %d, waiting complete %d for %d\n",replay_wsh[*p].count_wpi-1,*p,victim);
-				printf("DEBUG : WORKER:%d WPI:%d\n",*p,replay_wsh[*p].count_wpi-1);
+				#if DEBUG
+				{
+					printf("DEBUG : %d, waiting complete %d for %d\n",replay_wsh[*p].count_wpi-1,*p,victim);
+					printf("DEBUG :Change in Working Phase - WORKER:%d WPI:%d\n",*p,replay_wsh[*p].count_wpi-1);
+				}
+				#endif
 				func->atFrontier = true; 	//mark that its child could get stolen
 				func->level = 0;
 				replay_wsh[*p].current_wpi.childCount.push_back(0);	//at level 0 there are currently 0 children found
@@ -807,7 +790,7 @@ void find_and_execute_task()
 {
 	int *p = (int *)pthread_getspecific(key);
 	Task *func=grab_task_from_runtime();
-	if(TRACE || REPLAY)
+	if(TRACE || REPLAY)			//Update the currenlty executing task by the worker
 		executingTasks[*p] = func;
 
 	if(func!=NULL){
@@ -860,7 +843,6 @@ void create_workers(int &size)
 		//**********************************************
 		pthread_create(&threads[i],NULL, worker_routine, (void *)temp_i);
 	}
-
 }
 
 
@@ -874,6 +856,16 @@ bool string2bool(char *s)
 	   return false;
 }
 
+
+// # false for error
+bool checkEnVariables()
+{
+	if(TRACE && REPLAY){
+		printf("ERROR : Replay and Trace aren't supported at same execution\n");
+		return false;
+	}
+	return true;
+}
 
 // ########This method is to get the environment variable decribed as below
 // ########COTTON_WORKERS
@@ -898,11 +890,16 @@ void getEnVariable()
 		printf("Tracing the steal execution\n");
 		TRACE = string2bool(p);
 	}
+	p = getenv("COTTON_FILE");
+	if(p!=NULL)
+	{
+		FILE_LOC=p;
+	}
 	p = getenv("PRINT");
 	if(p!=NULL)
 	{
 		printf("Printing temp.trace : \n");
-		replay_wsh = readReplayWorkerStateHdrs("temp.trace");
+		replay_wsh = readReplayWorkerStateHdrs(FILE_LOC);
 		for(int i=0;i<size;i++)
 		{
 			printf("WORKER %d list of workphase\n",i);
@@ -910,14 +907,42 @@ void getEnVariable()
 		}
 		exit(0);
 	}
-
+	if(!checkEnVariables())
+		exit(1);
 }
 
+
+void init_replay()
+{
+	init_executionTask();
+	executingTasks[size-1]->atFrontier = true;
+	replay_wsh = readReplayWorkerStateHdrs(FILE_LOC);
+	ReplayWorkingStateHdr::setPipeLines(replay_wsh);
+	#if DEBUG
+		printf("****************Result after retracing************* \n");
+		for(int i=0;i<size;i++)
+		{
+			printf("WORKER %d list of workphase\n",i);
+			replay_wsh[i].print();
+		}
+	#endif
+
+	replay_wsh[size-1].current_wpi = replay_wsh[size-1].getNextWPI();
+
+}
+void init_tracing()
+{
+	init_executionTask();
+
+	wsh = new WorkingStateHdr[size];
+	HelpFirstInfo phase(executingTasks[size-1]);
+	phase.victim = -1; //initiallize initial worker 1st workingphase and set its victim to -1 as it is not stolen from anyone
+	wsh[size-1].wpi.push_back(phase);
+
+}
 void init_runtime()
 {
 	shutdown=false;
-	//thread_pool_size
-
 	getEnVariable();
 
 	if(TRACE)
@@ -944,7 +969,7 @@ void updateNewTask(Task &t)
 
 	//*********************************************************************************************************
 }
-
+// In order to make space or initialize a new level in nTasksStolen and childCount
 void updateLevelsNum(Task &t)
 {
 	int *p = (int *)pthread_getspecific(key);	
@@ -984,6 +1009,7 @@ bool updateStealTask(Task &t)
 }
 
 void async(std::function<void()> &&lambda){
+	// From function create a task (as task could have its own level and steps that are executed in it)
 	Task t(lambda);
 	bool isTaskPush = true;	//if this task is stolen in replay then not pushed inside runtime
 	if(TRACE){
@@ -1030,8 +1056,8 @@ void finalize_runtime(){
 
 	if(TRACE)
 	{
-		printf("*************Writing Trace to local file named 'temp.obj'\n");
-		writeWorkerStateHdrs("temp.trace",wsh);
+		printf("*************Writing Trace to local file named '%s'\n",FILE_LOC);
+		writeWorkerStateHdrs(FILE_LOC,wsh);
 
 		bool check=false;
 		printf("****************Validating the tracing************* \n");
@@ -1048,16 +1074,16 @@ void finalize_runtime(){
 			
 			}
 		}
-		if(check)
-		{
-			printf("****************Retracing************* \n");
+		// if(check)
+		// {
+		// 	printf("****************Retracing************* \n");
 			
-			for(int i=0;i<size;i++)
-			{
-				printf("WORKER %d list of workphase\n",i);
-				wsh[i].print();
-			}
-		}	
+		// 	for(int i=0;i<size;i++)
+		// 	{
+		// 		printf("WORKER %d list of workphase\n",i);
+		// 		wsh[i].print();
+		// 	}
+		// }	
 	}
 
 
