@@ -12,7 +12,7 @@
 namespace cotton
 {
 
-#define DEBUG false
+#define DEBUG true
 pthread_mutex_t fin_lock=PTHREAD_MUTEX_INITIALIZER; //finish_counter lock if defined then use mutex_lock
 
 
@@ -20,7 +20,7 @@ volatile bool shutdown=true; //true-not running,false-running
 
 int size=1;
 pthread_t *threads;
-int finish_counter=0;
+volatile int finish_counter=0;
 
 pthread_key_t key;
 int getKey()
@@ -591,8 +591,8 @@ class DeQueue
 		}
 		tasks.put(b,task);
 		bottom = b+1;
-		if(DEBUG)
-			printf("push %ld %ld\n",bottom,top);
+		// if(DEBUG)
+		// 	printf("push %ld %ld\n",bottom,top);
 	}
 	//**********************************************
 
@@ -689,7 +689,7 @@ class DeQueue
 		{
 
 #if DEBUG
-				printf("pop %ld %ld\n",bottom,top);
+				// printf("pop %ld %ld\n",bottom,top);
 #endif
 			return task;
 		}
@@ -700,7 +700,7 @@ class DeQueue
 		}
 		bottom=t+1;	//top is t+1 so bottom should also be t+1 for empty
 #if DEBUG
-			printf("pop %ld %ld\n",bottom,top);
+			// printf("pop %ld %ld\n",bottom,top);
 #endif
 		return task;
 	}
@@ -750,11 +750,13 @@ Task *grab_task_from_runtime()
 				#endif
 				do{
 					func = (replay_wsh[*p].recPipe[victim])->popTop();
-				}while(func==NULL);
+				}while(func==NULL && finish_counter!=0);
+				if(finish_counter==0)
+					return NULL;
 				#if DEBUG
 				{
 					printf("DEBUG : %d, waiting complete %d for %d\n",replay_wsh[*p].count_wpi-1,*p,victim);
-					printf("DEBUG :Change in Working Phase - WORKER:%d WPI:%d\n",*p,replay_wsh[*p].count_wpi-1);
+					printf("DEBUG :Change in Working Phase - WORKER:%d WPI:%d\n",*p,replay_wsh[*p].count_wpi);
 				}
 				#endif
 				func->atFrontier = true; 	//mark that its child could get stolen
@@ -813,9 +815,6 @@ void find_and_execute_task()
 void *worker_routine(void *p){
 	//**********For Work Steeling Deque**********
 	pthread_setspecific(key,p);
-#if DEBUG
-		printf("created %d\n",*((int *)p) );
-#endif
 	//*******************************************
 	while(!shutdown)
 	{
@@ -918,15 +917,6 @@ void init_replay()
 	executingTasks[size-1]->atFrontier = true;
 	replay_wsh = readReplayWorkerStateHdrs(FILE_LOC);
 	ReplayWorkingStateHdr::setPipeLines(replay_wsh);
-	#if DEBUG
-		printf("****************Result after retracing************* \n");
-		for(int i=0;i<size;i++)
-		{
-			printf("WORKER %d list of workphase\n",i);
-			replay_wsh[i].print();
-		}
-	#endif
-
 	replay_wsh[size-1].current_wpi = replay_wsh[size-1].getNextWPI();
 
 }
@@ -951,7 +941,7 @@ void init_runtime()
 		init_replay();
 
 #if DEBUG
-		printf("WORKERS : %d\n",size);
+		// printf("WORKERS : %d\n",size);
 #endif
 	srand(time(NULL));
 	//****************
