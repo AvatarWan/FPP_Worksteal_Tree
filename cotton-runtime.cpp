@@ -1,3 +1,18 @@
+
+/**************************************************************************************************************/
+/* This is the cotton runtime a very lightweight implementation of the library-based concurrency platform that
+/* should support basic async-finish based task-parallelism and rely on “work-stealing” technique for task scheduling.
+/* This runtime is only able to support “flat finish” scopes. A flat-finish scope is a single-level finish scope
+/* for all async tasks spawned within its scope (i.e., an async task can recursively create new async tasks but
+/* it can never spawn new finish scopes).
+/*
+/* This code later is modified and included the Low-Overhead Tracing of Work Stealing Schedulers and Replay 
+/* of the program with the same steal tree as explained the paper :
+/* *************************"Steal Tree: Low-Overhead Tracing of Work Stealing Schedulers"*********************/
+/*                              by Jonathan Lifflander, Sriram Krishnamoorthy and
+/*                                           Laxmikant V. Kale
+/**************************************************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -9,20 +24,30 @@
 #include <fstream>
 #include <iostream>
 
+//Scope for the all linguistic interfaces that are implemented
 namespace cotton
 {
 
-#define DEBUG true
+/*******************************************************************************************************/
+/*
+/*******************************************************************************************************/
+//This flag could be used to help debug the print the Working info of the Code
+#define DEBUG false
+//This is used for updation of the finish_counter
 pthread_mutex_t fin_lock=PTHREAD_MUTEX_INITIALIZER; //finish_counter lock if defined then use mutex_lock
 
-
+//Variable that keeps the state of the whether runtime is running or not
 volatile bool shutdown=true; //true-not running,false-running
 
+//Number of the Workers
 int size=1;
 pthread_t *threads;
+//Finish counter to store number of Task under deque or getting executed
 volatile int finish_counter=0;
 
+//Used to assign id to each worker
 pthread_key_t key;
+//Used for debuging the client code
 int getKey()
 {
 	return 	*((int *)pthread_getspecific(key));
@@ -33,14 +58,31 @@ int getSize()
 }
 
 
-//*********************************Tracing code**********************
-//*******************************************************************
+/*********************************************************************************************************/
+/* Code used for Tracing and Replay fo the Workstealing Scheduler that uses Help First Approch
+/* The Psedo code and explaination of the Working could be found over the mentioned Paper by Jonathan Lifflander
+/*********************************************************************************************************/
+
+/*********************************************************************************************************/
+/* REPLAY - flag for replay of the steal execution
+/* TRACE  - flag to signify Tracing of the steal operations
+/* FILE_LOC - will be used to save and read the tracing info for both replaying and tracing
+/*********************************************************************************************************/
 bool REPLAY = false;
 bool TRACE = false;
 char *FILE_LOC="temp.trace";
 
-// step data member has not been used as it is a flat and single finish so a task if stared execution then will definetly complete
-// and whole task could get stolen
+
+/********************************************************************************************************/
+/* Data structure for the partially completed task or running task or untouched (full) task
+/* (Note : because this is a flat finish runtime so a task if stared execution then will definetly complete
+/* or the whole task will get stolen i.e. no partial task could ever get stolen) so "step" data member is
+/* not used anywhere is the Tracing or Replaying algorithem
+/* thisT :- task that needs to be executed (passed on the async interface of the runtime)
+/* level :- level the working tree that the task is asynced (encontered in the client code)
+/* step  :- number of steps that are executed of the task (dynamic sequence of the instruction that has no
+/*			interleaving async, finish)
+/********************************************************************************************************/
 class ContinuationHdr
 {public:
 	ContinuationHdr(const ContinuationHdr &t)
@@ -62,6 +104,11 @@ class ContinuationHdr
 
 
 //Rather then creating new class for ReplayContinuationHeader i have created it inside Task itself
+/***************************************************************************************************************/
+/* To signify a any kind of Task
+/* In replay a rather than creating a new data member i have used the same class with atFrontier
+/* atFrontier :- During replay each task tracks whether its children could have been stolen in the trace
+/***************************************************************************************************************/
 class Task : public ContinuationHdr
 {
 public:
@@ -93,7 +140,13 @@ class Cont : public  ContinuationHdr
 
 };
 
-// #######################Sending and Reciving the Task between Workers Datatype
+/*********************************************************************************************************************/
+/* Sending and Reciving the Task between Workers Used for the Replay execution
+/* as during the replay execution some task are need to marked and send to the theif for future execution so this 
+/* data structure is used which will make a directed pipeline between two workers
+/* push   :- push from the victim end of the task
+/* popTop :- pop from the theif end of the task
+/*********************************************************************************************************************/
 class PipeDeQueue
 {
 
@@ -201,6 +254,17 @@ class PipeDeQueue
 };
 
 
+/****************************************************************************************************************/
+/* Stores the information of the possible executing countinuation steps in well defined order that start start with single continuation 
+/* after every steal working phase changes so it needs to update itself on each steal from it
+/* on steal by theif a new working phase will start for the theif so needs to store the victim task has been ston
+/* from
+/* victim :- worker from which the task stolen which start this working phase
+/* stepStolen :- not used as explained in the ContinuationHdr step is not used because of the flat finish and help first
+/* thieves :- list the thieves that stole the task from this working phase
+/* getNextTheif() :- return the theif ids in the order at which they steal tasks (only used in replay)
+/* isMoreTheif() :- is more theif available that could steal the task from working phase (only used in replay)
+/****************************************************************************************************************/
 class WorkingPhaseInfo
 {
 public:
@@ -231,6 +295,14 @@ protected:
 	WorkingPhaseInfo(){}
 };
 
+
+/************************************************************************************************************/
+/* Used for the Help First working scheduler Working Phase
+/* nTaskStolen :- number of task stolen at each level, initialize to 0 when encountered a new level
+/* nTasksStolen_lock :- because nTasksStolen could be modified when a new level is created by victim or theif stealing and modifying the
+/* task count so have to use a Lock
+/* childCount :- number of children for current executing task (used in replay Only)
+/************************************************************************************************************/
 class HelpFirstInfo :  public  WorkingPhaseInfo
 {
 public:
@@ -283,8 +355,10 @@ public:
 	}
 };
 
+/********************************************************************************************************/
+/*These funtions are created to put the trace of the running code to a local file. 						*/
+/********************************************************************************************************/
 
-//These funtions are created to put the trace of the running code to a local file.
 
 //This is just a helper funtion to write vector of any kind
 template<typename T>
@@ -321,6 +395,14 @@ std::istream& operator>> ( std::istream& stm, HelpFirstInfo &a )
 	return stm;
 }
 
+
+
+/*********************************************************************************************************/
+/* For each worker there will be different working Phases (after every steal it will change its working 
+/* Phase) so this structure stores the list of all the working phases
+/* wpi    :- list of the working phases of the worker
+/* validate :- helper function to validate the theif and nTasksStolen list of each working phase
+/*********************************************************************************************************/
 class WorkingStateHdr
 {
 public:
@@ -374,6 +456,15 @@ public:
 	}
 };
 
+
+/************************************************************************************************************/
+/* Replay Working state Hdr to store working phase list of one worker and pipelines to tansfer and get Task
+/* from others
+/* current_wpi :- working phase that worker currently executing
+/* sendPipe :- pipeline to send Task that will be stolen by other from this worker
+/* recvPipe :- pipeline to receive Task that will be stolen by this worker from other and this will could
+/* 			   change in working state phase
+/************************************************************************************************************/
 class ReplayWorkingStateHdr : public WorkingStateHdr
 {
 public:
@@ -460,6 +551,18 @@ ReplayWorkingStateHdr *readReplayWorkerStateHdrs(char *location)
 	file_obj.open(location);
 	int tempSize;
 	file_obj>>tempSize;
+	if(size < tempSize)
+	{
+		printf("[ERROR]: Replaying require more number of Workers\n");
+		exit(1);
+	}
+	else if(size > tempSize)
+	{
+		printf("[ERROR]: Tracing has less number of Workers=%d\n",tempSize);
+		size = tempSize;
+		exit(1);
+	}
+
 	ReplayWorkingStateHdr *arr = new ReplayWorkingStateHdr[tempSize];
 	for(int i=0;i<size;i++)
 	{
@@ -481,6 +584,12 @@ Task **executingTasks;
 //Used for the replay
 ReplayWorkingStateHdr *replay_wsh;
 
+/***********************************************************************************************************/
+/* Initialize the first executing task and space allocate the area to store reference to currently executing
+/* Task by the Workers as this information is usefull to check whether current task is frontliner or not
+/* for updateStealCount which update childCount for currently executing Task Working phase and fronliner 
+/* info for child Tasks
+/***********************************************************************************************************/
 void init_executionTask()
 {
 	//This is keeping track of which worker executing which task currently
@@ -490,7 +599,7 @@ void init_executionTask()
 
 }
 
-int getTempMyFuck(int victim,int level)
+int getVictimeCurrentStolen(int victim,int level)
 {
 	if(level>=replay_wsh[victim].current_wpi.nTasksStolen.size())
 		return 0;
@@ -499,7 +608,10 @@ int getTempMyFuck(int victim,int level)
 
 }
 
-
+/*****************************************************************************************************/
+/* If during replay async, worker find that any task will be stolen by any other worker then it be mark it as
+/* stolen and send toward theif worker using pipelines and don't push into its deque
+/*****************************************************************************************************/
 void markStolen(int victim,Task &t,HelpFirstInfo &current_wpi)
 {
 	int thief;
@@ -508,7 +620,7 @@ void markStolen(int victim,Task &t,HelpFirstInfo &current_wpi)
 		thief = current_wpi.getNextTheif();
 	else{
 		printf("[ERROR] : no more theif,for worker:%d ,count_wpi:%d ,last value of curr_theif:%d \n",victim,replay_wsh[victim].count_wpi-1,current_wpi.curr_theif);
-		printf("[ERROR] : level:%d nChild:%d nTasksStolen:%d\n",t.level,current_wpi.childCount[t.level],getTempMyFuck(victim,t.level) );
+		printf("[ERROR] : level:%d nChild:%d nTasksStolen:%d\n",t.level,current_wpi.childCount[t.level],getVictimeCurrentStolen(victim,t.level) );
 	}
 	(replay_wsh[victim].sendPipe[thief])->push(t);
 	#if DEBUG
@@ -734,13 +846,19 @@ Task *grab_task_from_runtime()
 				victim = rand()%size;
 			}while(victim== (*p));
 			func = workerShelves[victim].steal(victim,*p);
-			if(func!=NULL)
-				printf("steal from %d to %d\n",victim,*p);
+			#if DEBUG
+			{
+				if(func!=NULL)
+					printf("steal from %d to %d\n",victim,*p);
+			}
+			#endif
 		} //In case of Replay rather then stealing use the task from pipelines of the predetermined victim
 		else
 		{
-			//Check if there is more Working Phase for the Worker if there is no more available task in deque(Working Shelf) and
-			//no more task for steal so finish the execution and suspend this Worker 
+			/*******************************************************************************************************************/	
+			/* Check if there is more Working Phase for the Worker if there is no more available task in deque(Working Shelf) and
+			/* no more task for steal so finish the execution and suspend this Worker 
+			/*******************************************************************************************************************/
 			if(replay_wsh[*p].isMoreWPI())
 			{
 				replay_wsh[*p].current_wpi = replay_wsh[*p].getNextWPI();
@@ -849,7 +967,7 @@ void create_workers(int &size)
 bool string2bool(char *s)
 {
 	char b[8];
-	if ( sscanf(s,"%[TtRrUuEe]",b))
+	if (sscanf(s,"%[TtRrUuEe]",b) || s[0]=='1')
 	   return true;
 	else
 	   return false;
@@ -880,14 +998,16 @@ void getEnVariable()
 	p = getenv("COTTON_REPLAY");
 	if(p!=NULL)
 	{
-		printf("Replaying the steel execution\n");
 		REPLAY = string2bool(p);
+		if(REPLAY)
+			printf("Replaying the steel execution\n");
 	}
 	p = getenv("COTTON_TRACE");
 	if(p!=NULL)
 	{
-		printf("Tracing the steal execution\n");
 		TRACE = string2bool(p);
+		if(TRACE)
+			printf("Tracing the steal execution\n");
 	}
 	p = getenv("COTTON_FILE");
 	if(p!=NULL)
@@ -966,7 +1086,7 @@ void updateLevelsNum(Task &t)
 	if(TRACE)
 	{
 		//If a new level is created because of this async then initialize it with 0
-		while(t.level+8 >= wsh[*p].wpi.back().nTasksStolen.size() )
+		while(t.level+3 >= wsh[*p].wpi.back().nTasksStolen.size() )
 			wsh[*p].wpi.back().nTasksStolenPush_Back(0);
 	}
 	else if(REPLAY)
@@ -985,12 +1105,12 @@ bool updateStealTask(Task &t)
 	if(executingTasks[*p]->atFrontier)
 	{
 	//	printf("here %d %d %d\n",t.level,replay_wsh[*p].current_wpi.childCount[t.level],replay_wsh[*p].current_wpi.nTasksStolen[t.level]);
-		if(replay_wsh[*p].current_wpi.childCount[t.level] < getTempMyFuck(*p,t.level) )
+		if(replay_wsh[*p].current_wpi.childCount[t.level] < getVictimeCurrentStolen(*p,t.level) )
 		{
 			isTaskPush = false;
 			markStolen(*p,t,replay_wsh[*p].current_wpi);
 		}
-		else if(replay_wsh[*p].current_wpi.childCount[t.level] == getTempMyFuck(*p,t.level))
+		else if(replay_wsh[*p].current_wpi.childCount[t.level] == getVictimeCurrentStolen(*p,t.level))
 			t.atFrontier = true;
 	}
 
