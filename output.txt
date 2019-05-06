@@ -1,0 +1,411 @@
+Printing temp.trace : 
+WORKER 0 list of workphase
+workphase number 0
+	 victim : 3
+	 thieves :
+		1	1	1	2
+	nTasksStolen at each level :
+		0	2	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 1
+	 victim : 3
+	 thieves :
+		2
+	nTasksStolen at each level :
+		0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 2
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 3
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 4
+	 victim : 3
+	 thieves :
+		1
+	nTasksStolen at each level :
+		0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 5
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 6
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0
+
+workphase number 7
+	 victim : 3
+	 thieves :
+		2	2	3	3
+	nTasksStolen at each level :
+		0	2	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 8
+	 victim : 2
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 9
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 10
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 11
+	 victim : 2
+	 thieves :
+		2	2
+	nTasksStolen at each level :
+		0	2	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 12
+	 victim : 1
+	 thieves :
+		3	3
+	nTasksStolen at each level :
+		0	1	1	0	0	0	0	0	0	0	0
+
+WORKER 1 list of workphase
+workphase number 0
+	 victim : 2
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 1
+	 victim : 2
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 2
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 3
+	 victim : 2
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 4
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 5
+	 victim : 2
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 6
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 7
+	 victim : 2
+	 thieves :
+		2
+	nTasksStolen at each level :
+		0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 8
+	 victim : 2
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 9
+	 victim : 3
+	 thieves :
+		0	2	0
+	nTasksStolen at each level :
+		0	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 10
+	 victim : 2
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 11
+	 victim : 2
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 12
+	 victim : 3
+	 thieves :
+		2	2
+	nTasksStolen at each level :
+		0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 13
+	 victim : 2
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 14
+	 victim : 0
+	 thieves :
+		0	0
+	nTasksStolen at each level :
+		0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 15
+	 victim : 3
+	 thieves :
+		2	3	3	2	0	0
+	nTasksStolen at each level :
+		0	3	1	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 16
+	 victim : 3
+	 thieves :
+		3	0
+	nTasksStolen at each level :
+		0	1	1	0	0	0	0	0	0	0	0
+
+WORKER 2 list of workphase
+workphase number 0
+	 victim : 3
+	 thieves :
+		1	1	1	1	1
+	nTasksStolen at each level :
+		0	3	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 1
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 2
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 3
+	 victim : 3
+	 thieves :
+		1
+	nTasksStolen at each level :
+		0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 4
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 5
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 6
+	 victim : 3
+	 thieves :
+		1	1
+	nTasksStolen at each level :
+		0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 7
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 8
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 9
+	 victim : 3
+	 thieves :
+		1
+	nTasksStolen at each level :
+		0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 10
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 11
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 12
+	 victim : 0
+	 thieves :
+		0
+	nTasksStolen at each level :
+		0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 13
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 14
+	 victim : 3
+	 thieves :
+		0
+	nTasksStolen at each level :
+		0	1	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 15
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0
+
+workphase number 16
+	 victim : 0
+	 thieves :
+		3
+	nTasksStolen at each level :
+		0	1	0	0	0	0	0	0	0	0
+
+workphase number 17
+	 victim : 3
+	 thieves :
+	
+	nTasksStolen at each level :
+		0
+
+workphase number 18
+	 victim : 3
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0
+
+WORKER 3 list of workphase
+workphase number 0
+	 victim : -1
+	 thieves :
+		0	2	0	2	1	2	0	1	2	0	1
+	nTasksStolen at each level :
+		0	8	1	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 1
+	 victim : 1
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 2
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 3
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 4
+	 victim : 1
+	 thieves :
+		2	1
+	nTasksStolen at each level :
+		0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+
+workphase number 5
+	 victim : 2
+	 thieves :
+		2
+	nTasksStolen at each level :
+		0	1	0	0	0	0	0	0	0	0
+
+workphase number 6
+	 victim : 1
+	 thieves :
+		2
+	nTasksStolen at each level :
+		0	1	0	0	0	0	0	0	0	0
+
+workphase number 7
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0
+
+workphase number 8
+	 victim : 0
+	 thieves :
+	
+	nTasksStolen at each level :
+		0
+

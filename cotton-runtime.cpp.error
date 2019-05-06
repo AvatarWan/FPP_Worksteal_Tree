@@ -632,12 +632,11 @@ void markStolen(int victim,Task &t,HelpFirstInfo &current_wpi)
 
 
 
-
-
-
 //********************Work-Stealing Aproch for thread-pool runtime data structure***************
 //**********************************************************************************************
 
+
+pthread_mutex_t l_lock = PTHREAD_MUTEX_INITIALIZER;
 
 class DeQueue
 {
@@ -683,6 +682,12 @@ class DeQueue
 	TaskList tasks;
 	volatile long top=0;
 	volatile long bottom=0;
+
+public:
+	pthread_mutex_t *getmutexLock()
+	{
+		return &tq_lock;
+	}
 	
 	public:
 		DeQueue() {
@@ -708,21 +713,41 @@ class DeQueue
 	}
 	//**********************************************
 
+
+	void takeLock(pthread_mutex_t *tq_lock1,pthread_mutex_t *tq_lock2)
+	{
+		pthread_mutex_lock(&l_lock);
+			pthread_mutex_lock(tq_lock1);
+			if(tq_lock2!=NULL)
+				pthread_mutex_lock(tq_lock2);
+		pthread_mutex_unlock(&l_lock);
+	}
+
+	void releaseLock(pthread_mutex_t *tq_lock1,pthread_mutex_t *tq_lock2)
+	{
+		pthread_mutex_lock(&l_lock);
+			pthread_mutex_unlock(tq_lock1);
+			if(tq_lock2!=NULL)
+				pthread_mutex_unlock(tq_lock2);
+		pthread_mutex_unlock(&l_lock);	
+	}
+
+
 	//***********Atomic compare and Swap top of the task deque************
 	bool compareAndSwapTop(long oldV,long newV)
 	{
 		bool r;
-		pthread_mutex_lock(&tq_lock);
+		takeLock(&tq_lock,NULL);
 		r= (oldV==top);
 		if(r)
 			top=newV;
-		pthread_mutex_unlock(&tq_lock);
+		releaseLock(&tq_lock,NULL);
 		return r;
 	}
-	bool compareAndSwapTopAndTrace(long oldV,long newV,Task &c,int victim,int myrank)
+	bool compareAndSwapTopAndTrace(long oldV,long newV,Task &c,int victim,int myrank,pthread_mutex_t &tq_lock_theif)
 	{
 		bool r;
-		pthread_mutex_lock(&tq_lock);
+		takeLock(&tq_lock,&tq_lock_theif);
 		int vict_phase_index = wsh[victim].wpi.size()-1;
 		r= (oldV==top);
 		if(r)
@@ -756,14 +781,15 @@ class DeQueue
 			phase.nTasksStolen.push_back(c.level); //c.level here is 0 always as a new phase will start and base level be 0
 			wsh[myrank].addNewPhase(phase);
 		}
-		pthread_mutex_unlock(&tq_lock);
+
+		releaseLock(&tq_lock,&tq_lock_theif);
 		return r;
 
 	}
 	//*******************************************************************
 
 	//************Pop from top**********************
-	Task *steal(int victim,int myrank)
+	Task *steal(int victim,int myrank,pthread_mutex_t &tq_lock_theif)
 	{
 		long t = top;
 		long b = bottom;
@@ -776,7 +802,7 @@ class DeQueue
 				return NULL;
 		}
 		else //in case of Trace if steal is successfull then trace it too
-			if( !compareAndSwapTopAndTrace(t,t+1,*task,victim,myrank) )
+			if( !compareAndSwapTopAndTrace(t,t+1,*task,victim,myrank,tq_lock_theif) )
 				return NULL;
 
 		if(DEBUG)
@@ -845,7 +871,7 @@ Task *grab_task_from_runtime()
 			do{
 				victim = rand()%size;
 			}while(victim== (*p));
-			func = workerShelves[victim].steal(victim,*p);
+			func = workerShelves[victim].steal(victim,*p,*(workerShelves[*p].getmutexLock()) );
 			#if DEBUG
 			{
 				if(func!=NULL)
